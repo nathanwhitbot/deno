@@ -300,13 +300,8 @@ pub struct WebWorkerHandle {
 impl WebWorkerHandle {
   /// Get the WorkerEvent with lock
   /// Return error if more than one listener tries to get event
-  #[allow(
-    clippy::await_holding_refcell_ref,
-    reason = "TODO: investigate and fix"
-  )] // TODO(ry) remove!
   pub async fn get_control_event(&self) -> Option<WorkerControlEvent> {
-    let mut receiver = self.receiver.borrow_mut();
-    receiver.next().await
+    poll_fn(|cx| self.receiver.borrow_mut().poll_next_unpin(cx)).await
   }
 
   /// Terminate the worker
