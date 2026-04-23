@@ -837,21 +837,26 @@ pub fn op_http_close_after_finish(external: *const c_void) {
 }
 
 #[op2(fast)]
-pub fn op_http_set_response_body_text(
+pub fn op_http_set_response_body_text<'s>(
   external: *const c_void,
-  #[string] text: String,
+  text: v8::Local<'s, v8::String>,
   status: u16,
+  scope: &mut v8::PinScope<'s, '_>,
 ) {
   let http =
     // SAFETY: external is deleted before calling this op.
     unsafe { take_external!(external, "op_http_set_response_body_text") };
-  if !text.is_empty() {
-    set_response(http, Some(text.len()), status, false, |compression| {
-      ResponseBytesInner::from_vec(compression, text.into_bytes())
-    });
-  } else {
+  if text.length() == 0 {
     set_promise_complete(http, status);
+    return;
   }
+  // Skip the body-sized clone that `#[string]`/`to_string` performs off its
+  // thread-local staging buffer (denoland/deno#20409).
+  let mut buf = String::new();
+  text.write_utf8_into(scope, &mut buf);
+  set_response(http, Some(buf.len()), status, false, |compression| {
+    ResponseBytesInner::from_vec(compression, buf.into_bytes())
+  });
 }
 
 #[op2]
