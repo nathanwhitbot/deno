@@ -174,6 +174,17 @@ Deno.test(function headerSymbolIteratorSuccess() {
   }
 });
 
+Deno.test(function headerIterationReflectsMutations() {
+  const headers = new Headers({ a: "1", b: "2" });
+  assertEquals([...headers], [["a", "1"], ["b", "2"]]);
+  headers.append("c", "3");
+  assertEquals([...headers], [["a", "1"], ["b", "2"], ["c", "3"]]);
+  headers.set("b", "22");
+  assertEquals([...headers], [["a", "1"], ["b", "22"], ["c", "3"]]);
+  headers.delete("a");
+  assertEquals([...headers], [["b", "22"], ["c", "3"]]);
+});
+
 Deno.test(function headerTypesAvailable() {
   function newHeaders(): Headers {
     return new Headers();
